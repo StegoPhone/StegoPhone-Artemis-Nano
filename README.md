@@ -13,6 +13,7 @@ Made available under the GPLv3
 * Qwiic - I2C to Keypad, and 2x Alphanumeric display
 * GPIO09 - TX to RN-52 UART RX
 * GPIO10 - RX to RN-52 UART TX
+* GPIO07 - RN52 INT (Active LOW 100ms)
 * GPIO08 - Keypad INT (Active LOW)
 * GPIO00 - Device Enable to RN-52 (HIGH for >=1s to power on, can leave high or low after)
 * GPIO01 - RN-52 GPIO9 (CMD enable LOW, DATA enable HIGH. LOW at boot)

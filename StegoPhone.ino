@@ -27,6 +27,7 @@ KEYPAD keypad;
 const byte rn52ENPin = 0;          // active high
 const byte rn52CMDPin = 1;         // active low
 const byte rn52SPISel = 2;         //
+const byte rn52InterruptPin = 7; // input no pull, active low 100ms
 const byte keypadInterruptPin = 8; // input no pull, active low
 const byte userLED = 19;
 //================================================================================================
@@ -34,6 +35,7 @@ const byte userLED = 19;
 // ISR MODIFIED
 //================================================================================================
 volatile bool userLEDStatus = true;
+volatile boolean rn52StatusUpdated = false; // updated by ISR if RN52 has an event
 volatile boolean buttonAvailable = false; // used to keep track if there is a button on the stack
 //================================================================================================
 
@@ -87,6 +89,10 @@ void intReadKeypad() // keep this quick; no delays, prints, I2C allowed.
   buttonAvailable = true;
 }
 
+void intRN52Update()
+{
+  rn52StatusUpdated = true;
+}
 
 void rn52Command(const char *cmd) {
   Serial1.write(cmd);
@@ -109,8 +115,9 @@ void rn52Debug(const char *cmd, const int interDelay = 50, const int bufferSize 
     }
   }
   cmdTest[cmdIdx++] = '\0';
-  Serial.print(cmdTest);
   displayPurple.decimalOff();
+  Serial.print("RN52:");
+  Serial.print(cmdTest);
 }
 
 void setup()
@@ -120,6 +127,7 @@ void setup()
   pinMode(rn52ENPin, OUTPUT);
   pinMode(rn52CMDPin, OUTPUT);
   pinMode(rn52SPISel, OUTPUT);
+  pinMode(rn52InterruptPin, INPUT); // Qwiic Keypad holds INT pin HIGH @ 3.3V, then LOW when fired.
   pinMode(keypadInterruptPin, INPUT); // Qwiic Keypad holds INT pin HIGH @ 3.3V, then LOW when fired.
   // Note, this means we do not want INPUT_PULLUP.
   pinMode(userLED, OUTPUT);
@@ -133,6 +141,7 @@ void setup()
   // Note, INT on the Keypad will "fall" from HIGH to LOW when a new button has been pressed.
   // Also note, it will stay low while there are still button events on the stack.
   // This is useful if you want to "poll" the INT pin, rather than use a hardware interrupt.
+  attachInterrupt(digitalPinToInterrupt(rn52InterruptPin), intRN52Update, FALLING);
 
   Wire.begin(); //Join I2C bus
 
@@ -199,6 +208,13 @@ void loop(void)
     // redundant/temporary: https://twitter.com/JessicaMulein/status/1336283417831374850?s=20
     buttonAvailable = false;
   }
+
+  if (rn52StatusUpdated) {
+    Serial.println("RN52 event");
+    toggleUserLED();
+    rn52StatusUpdated = false;
+  }
+
   switch (stegoStatus) {
     case Ready:
     // intentional fallthrough
