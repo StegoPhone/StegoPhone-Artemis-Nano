@@ -87,6 +87,32 @@ void intReadKeypad() // keep this quick; no delays, prints, I2C allowed.
   buttonAvailable = true;
 }
 
+
+void rn52Command(const char *cmd) {
+  Serial1.write(cmd);
+  Serial1.write('\n');
+}
+
+void rn52Debug(const char *cmd, const int interDelay = 50, const int bufferSize = 1024) {
+  char cmdTest[bufferSize];
+  int cmdIdx = 0;
+  displayMessageDual("RN52",cmd);
+  rn52Command(cmd);
+  delay(interDelay);
+  displayPurple.decimalOn();
+  while (Serial1.available() > 0) {
+    int incomingByte = Serial1.read();
+    if (cmdIdx < (sizeof(cmdTest)-1)) {
+      cmdTest[cmdIdx++] = (char) incomingByte;
+    } else {
+      break;
+    }
+  }
+  cmdTest[cmdIdx++] = '\0';
+  Serial.print(cmdTest);
+  displayPurple.decimalOff();
+}
+
 void setup()
 {
   Serial.begin(9600); // console/debug
@@ -152,6 +178,7 @@ void setup()
 
   displayMessageDual("STEG","RDY");
   stegoStatus = Ready;
+  rn52Debug("Q", 50, 1024);
 }
 
 void loop(void)
