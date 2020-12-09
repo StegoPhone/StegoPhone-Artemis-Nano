@@ -10,12 +10,10 @@
 
 void setup()
 {
-  StegoPhone::StegoPhone *stegoHandle = StegoPhone::StegoPhone::getInstance();
-  stegoHandle->init();
+  StegoPhone::StegoPhone::getInstance()->setup();
 }
 
 void loop(void)
 {
-  StegoPhone::StegoPhone *stegoHandle = StegoPhone::StegoPhone::getInstance();
-  stegoHandle->loop();
+  StegoPhone::StegoPhone::getInstance()->loop();
 }

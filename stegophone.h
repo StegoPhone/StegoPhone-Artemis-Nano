@@ -9,11 +9,9 @@
 #define _STEGOPHONE_H_
 
 #include <Arduino.h>
-#include <ArduinoJson.h>
-#include <SPI.h>
 #include <SparkFun_Alphanumeric_Display.h>
 #include <SparkFun_Qwiic_Keypad_Arduino_Library.h>
-#include <Wire.h>
+//#include <Wire.h>
 //include <ArduinoBLE.h>
 
 #include "rn52.h"
@@ -21,15 +19,31 @@
 namespace StegoPhone
 {
   enum StegoState {
-    Initializing,
-    InitFailure,
-    Ready
+    Offline,
+    InitializationStart,
+    InitializationFailure,
+    DisplayInitialized,
+    KeypadInitialized,
+    ExternalRN52Initialized,
+    InternalBTInitialized,    
+    Ready,
+    Ringing,
+    CallConnected,
+    PiedPiperPiping,
+    PiedPiperDuet,
+    CallPINSending,
+    CallPINSynchronized,
+    ModemInitializing,
+    ModemHandshaking,
+    EncryptionHandshaking,
+    EncryptedDataEstablished,
+    EncryptedVoice
   };
 
   class StegoPhone
   {
     public:
-      StegoState stegoStatus = Initializing;
+      StegoState stegoStatus = Offline;
 
       // PIN DEFINITIONS
       //================================================================================================
@@ -42,7 +56,7 @@ namespace StegoPhone
       //================================================================================================
 
       static StegoPhone *getInstance();
-      void init();
+      void setup();
       void loop();
 
       // Built-In LED
@@ -74,23 +88,22 @@ namespace StegoPhone
     protected:
       // ISR/MODIFIED
       //================================================================================================
-      volatile bool userLEDStatus;
-      volatile boolean rn52StatusUpdated; // updated by ISR if RN52 has an event
-      volatile boolean buttonAvailable; // used to keep track if there is a button on the stack
       static void intReadKeypad();  
       static void intRN52Update();
-      //================================================================================================
+      volatile bool userLEDStatus;
+      volatile boolean rn52InterruptOccurred; // updated by ISR if RN52 has an event
+      volatile boolean keypadInterruptOccurred; // used to keep track if there is a button on the stack
 
       // HARDWARE HANDLES
       //================================================================================================
       HT16K33 displayBlue;
       HT16K33 displayPurple;
       KEYPAD keypad;
-      static StegoPhone *_instance;
 
       // Internal
       //================================================================================================
       StegoPhone();
+      static StegoPhone *_instance;
     };
 }
 
