@@ -9,22 +9,29 @@
 #define _RN52_H_
 
 #include <Arduino.h>
+#include "linebuffer.h"
 
 namespace StegoPhone
 {
-  enum RN52Status {
+  enum class RN52Status {
     Offline,
     Present,
     Error
-  }
+  };
 
   class RN52
   {
     public:
       static RN52 *getInstance();
-      bool init();
+      bool setup();
 
-      void loop(bool rn52StatusUpdated);
+      void loop(bool rn52InterruptOccurred);
+
+      void receiveLine(char *line);
+
+      RN52Status status();
+
+      void updateStatus();
       
       void rn52Command(const char *cmd);
       
@@ -39,12 +46,9 @@ namespace StegoPhone
     protected:
       static RN52 *_instance;
       RN52();
-      ~RN52();
       bool exceptionOccurred = false;
-      
-      byte *_rn52SerialBuffer;
-      int _rn52SerialBufferSize;
-      int _rn52SerialBufferDataLength;
+      LineBuffer *_lineBuffer;
+      RN52Status _status;
   };
 }
 

@@ -1,6 +1,7 @@
 #include <cstdio>
 #include "stegophone.h"
 #include "rn52.h"
+#include "linebuffer.h"
 
 namespace StegoPhone
 {
@@ -11,50 +12,49 @@ namespace StegoPhone
   }
   
   RN52::RN52() {
-    this->_rn52SerialBufferDataLength = 0; // no bytes currently stored in the buffer
-    this->_rn52SerialBufferSize = 1024; // default to 1k to start. actual size
-    this->_rn52SerialBuffer = (byte*) malloc(this->_rn52SerialBufferSize);
+    this->_lineBuffer = new LineBuffer;
   }
 
-  RN52::~RN52() {
-    // will never happen
-    free(this->_rn52SerialBuffer);
-  }
-
-  bool RN52::init()
+  bool RN52::setup()
   {
+      this->_lineBuffer->setup();
       digitalWrite(StegoPhone::StegoPhone::rn52ENPin, true);
-      //detect if RN52 is connected to uart. expect CMD\r\n
-      char cmdTest[10];
-      int cmdIdx = 0;
-      while (Serial1.available() > 0) {
-        int incomingByte = Serial1.read();
-        if (cmdIdx < (sizeof(cmdTest)-1)) {
-          cmdTest[cmdIdx++] = (char) incomingByte;
-        }
-      }
-      cmdTest[cmdIdx++] = '\0';
-    
-      if (strcmp(cmdTest, "CMD\r\n") != 0) {
-        this->exceptionOccurred = true;
-      }
+      
+      // waitfor CMD
+      //if (strcmp(cmdTest, "CMD\r\n") != 0) {
+      //  this->exceptionOccurred = true;
+      //}
       return this->exceptionOccurred;
   }
 
-  void RN52::loop(bool rn52StatusUpdated) {
-    StegoPhone *stego = StegoPhone::StegoPhone::getInstance();
-    if (rn52StatusUpdated) {
+  void RN52::receiveLine(char *line) {
+    Serial.print("RN52 RX: ");
+    Serial.print(line);
+  }
+
+  // after an interrupt, poll the RN52 for its new status
+  void RN52::updateStatus() {
       char hexStatus[5];
-      
       const unsigned short s = this->rn52Status(hexStatus);
-      stego->displayMessageDual("R52>",hexStatus);
       Serial.print("RN52 Status DEC / HEX: ");
       Serial.print(s, DEC);
       Serial.print(" / ");
       Serial.print(s, HEX);
       Serial.print(" : orig=");
       Serial.println(hexStatus);
-    }
+  }
+
+  RN52Status RN52::status() {
+    return this->_status;
+  }
+
+  void RN52::loop(bool rn52InterruptOccurred) {
+    this->_lineBuffer->loop();
+
+    StegoPhone *stego = StegoPhone::StegoPhone::getInstance();
+
+    if (rn52InterruptOccurred)
+      this->updateStatus();
   }
 
   bool RN52::ExceptionOccurred() {

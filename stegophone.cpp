@@ -13,6 +13,7 @@ namespace StegoPhone
   StegoPhone *StegoPhone::_instance = 0;
 
   StegoPhone::StegoPhone() {
+    this->_status = StegoStatus::Offline;
     this->userLEDStatus = true;
     this->rn52InterruptOccurred = false; // updated by ISR if RN52 has an event
     this->keypadInterruptOccurred = false; // used to keep track if there is a button on the stack
@@ -48,29 +49,29 @@ namespace StegoPhone
   }
 
   void StegoPhone::setup() {
-    this->stegoStatus = StegoState::InitializationStart;
+    this->_status = StegoStatus::InitializationStart;
       
     // at a minimum we need the alphanumeric display to indicate what we are doing
     // otherwise, all we have is the on-board LED we'll use to blink for activity
     if (this->displayBlue.begin(0x70) == false) {
-      this->stegoStatus = StegoState::InitializationFailure,
+      this->_status = StegoStatus::InitializationFailure,
       this->blinkForever();
     } else if (displayPurple.begin(0x72) == false) {
       // have one display, but not both. able to display error on one
       this->displayMessage(displayBlue, "-DSP2");
-      this->stegoStatus = StegoState::InitializationFailure;
+      this->_status = StegoStatus::InitializationFailure;
       this->blinkForever();
     }
     // displays are ok
   
-    this->stegoStatus = StegoState::DisplayInitialized;
+    this->_status = StegoStatus::DisplayInitialized;
     this->displayMessageDual("STEG","BOOT");
     delay(500);
   
     if (keypad.begin() == false)   // Note, using begin() like this will use default I2C address, 0x4B.
     {                              // You can pass begin() a different address like so: keypad1.begin(Wire, 0x4A).
       this->displayMessageDual("KYPD","MSNG");
-      this->stegoStatus = StegoState::InitializationFailure;
+      this->_status = StegoStatus::InitializationFailure;
       this->blinkForever();
     }
     // keypad input is ok
@@ -79,13 +80,13 @@ namespace StegoPhone
     this->displayMessageDual("RN52","INIT");
     RN52 *rn52 = RN52::getInstance();
     // try to initialize
-    if (rn52->init()) {
+    if (rn52->setup()) {
       this->displayMessageDual("RN52","ERR");
-      this->stegoStatus = StegoState::InitializationFailure;
+      this->_status = StegoStatus::InitializationFailure;
       this->blinkForever();
     } else {
       this->displayMessageDual("STEG","RDY");
-      this->stegoStatus = Ready; 
+      this->_status = StegoStatus::Ready; 
     }
   }
 
@@ -113,12 +114,16 @@ namespace StegoPhone
       rn52->loop(this->rn52InterruptOccurred);
       this->rn52InterruptOccurred = false;
     
-      switch (this->stegoStatus) {
-        case Ready:
+      switch (this->_status) {
+        case StegoStatus::Ready:
         // intentional fallthrough
         default:
           break;
       }
+  }
+
+  StegoStatus StegoPhone::status() {
+    return this->_status;
   }
 
   void StegoPhone::setUserLED(bool newValue) {

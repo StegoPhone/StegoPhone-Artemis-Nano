@@ -18,7 +18,7 @@
 
 namespace StegoPhone
 {
-  enum StegoState {
+  enum class StegoStatus {
     Offline,
     InitializationStart,
     InitializationFailure,
@@ -43,7 +43,7 @@ namespace StegoPhone
   class StegoPhone
   {
     public:
-      StegoState stegoStatus = Offline;
+      StegoStatus status();
 
       // PIN DEFINITIONS
       //================================================================================================
@@ -103,6 +103,7 @@ namespace StegoPhone
       // Internal
       //================================================================================================
       StegoPhone();
+      StegoStatus _status;
       static StegoPhone *_instance;
     };
 }
